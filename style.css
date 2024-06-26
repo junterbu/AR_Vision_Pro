@@ -7,17 +7,19 @@ body {
 
 #container {
     width: 100vw;
-    height: 90vh;
+    height: 85vh; /* Vorher 90vh */
 }
 
 #controls {
     width: 100vw;
-    height: 10vh;
+    height: 15vh; /* Vorher 10vh */
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: #333;
     color: white;
+    position: relative; /* Position fixieren */
+    bottom: 0; /* Am unteren Rand des Containers */
 }
 
 #timeline {

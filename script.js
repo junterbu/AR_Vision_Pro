@@ -2,9 +2,10 @@
 const container = document.getElementById('container');
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.xr.enabled = true; // Enable XR on the renderer
+renderer.xr.enabled = true;
+renderer.setClearColor(0x000000, 0); // Set background to transparent for AR
 container.appendChild(renderer.domElement);
 
 // OrbitControls hinzufügen
@@ -15,20 +16,20 @@ const pmremGenerator = new THREE.PMREMGenerator(renderer);
 pmremGenerator.compileEquirectangularShader();
 
 // Licht hinzufügen
-const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2); // Weiter erhöhte Intensität
+const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2);
 hemisphereLight.position.set(0, 20, 0);
 scene.add(hemisphereLight);
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 2); // Weiter erhöhte Intensität
+const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
 directionalLight.position.set(0, 20, 10);
 scene.add(directionalLight);
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 1); // Weiter erhöhte Intensität
+const ambientLight = new THREE.AmbientLight(0xffffff, 1);
 scene.add(ambientLight);
 
 // Load HDRI Environment
 const rgbeLoader = new THREE.RGBELoader();
-rgbeLoader.setPath('path/to/your/hdri/');  // Pfad zur HDRI-Datei
+rgbeLoader.setPath('path/to/your/hdri/');
 rgbeLoader.load('your_hdri_file.hdr', function (texture) {
     const envMap = pmremGenerator.fromEquirectangular(texture).texture;
     scene.environment = envMap;
@@ -57,20 +58,18 @@ loader.load('assets/FTIR_v3.glb', function (loadedGltf) {
     // Traverse the scene to find the material
     gltf.scene.traverse((object) => {
         if (object.isMesh && object.material.name === 'Farbe weiß transparent') {
-            // Create a new PhysicalMaterial
             const pbrMaterial = new THREE.MeshPhysicalMaterial({
-                color: 0x000000,  // black color
+                color: 0x000000,
                 transparent: true,
                 opacity: 1.0,
-                roughness: 0.3, // Angepasster Wert
-                metalness: 0.1, // Angepasster Wert
+                roughness: 0.3,
+                metalness: 0.1,
                 clearcoat: 1.0,
                 clearcoatRoughness: 0.1
             });
 
-            // Replace the material
             object.material = pbrMaterial;
-            object.userData.pbrMaterial = pbrMaterial; // Store reference for animation
+            object.userData.pbrMaterial = pbrMaterial;
         }
     });
 
@@ -79,8 +78,7 @@ loader.load('assets/FTIR_v3.glb', function (loadedGltf) {
     console.error(error);
 });
 
-camera.position.set(-150, 100, 200); // X, Z, Y Koordinaten anpassen
-
+camera.position.set(-150, 100, 200);
 controls.update();
 
 // Uhr für Animationen
@@ -89,24 +87,35 @@ let isPlaying = true;
 let currentTime = 0;
 let playbackSpeed = 1.0;
 
+// AR Button hinzufügen
+document.body.appendChild(VRButton.createButton(renderer));
+
+const enterARButton = document.getElementById('enter-ar');
+enterARButton.addEventListener('click', () => {
+    renderer.xr.enabled = true;
+    renderer.xr.setSessionType('immersive-ar');
+    renderer.xr.getSession().then(session => {
+        session.requestReferenceSpace('local').then(refSpace => {
+            renderer.xr.setReferenceSpace(refSpace);
+            renderer.xr.start();
+        });
+    });
+});
+
 // Animationsfunktion
 function animate() {
     renderer.setAnimationLoop(() => {
         const delta = clock.getDelta() * playbackSpeed;
 
-        // Wenn ein Mixer vorhanden ist, Animationen aktualisieren
         if (mixer && isPlaying) {
             mixer.update(delta);
             currentTime = mixer.time % duration;
 
-            // Zeitleiste aktualisieren
             document.getElementById('timeline').value = currentTime * 100;
 
-            // Calculate current frame (assuming 1000 frames in total duration)
             const totalFrames = 1000;
             const currentFrame = (currentTime / duration) * totalFrames;
 
-            // Update shader material alpha value based on frame
             gltf.scene.traverse((object) => {
                 if (object.isMesh && object.userData.pbrMaterial) {
                     const pbrMaterial = object.userData.pbrMaterial;
@@ -123,10 +132,9 @@ function animate() {
             });
         }
 
-        controls.update();  // OrbitControls aktualisieren
+        controls.update();
         renderer.render(scene, camera);
 
-        // Überprüfen, ob die Animation wieder bei null startet
         if (currentTime >= duration - delta) {
             document.getElementById('timeline').value = 0;
         }
@@ -145,7 +153,7 @@ window.addEventListener('resize', function () {
 // Zeitleistensteuerung
 document.getElementById('timeline').addEventListener('input', function (e) {
     const value = e.target.value / 100;
-    mixer.setTime(value);
+    mixer.setTime(value * duration);
     currentTime = value * duration;
     if (!isPlaying) {
         action.paused = true;
@@ -158,7 +166,7 @@ document.getElementById('playPause').addEventListener('click', function () {
     if (isPlaying) {
         action.paused = false;
         clock.start();
-        clock.elapsedTime = currentTime; // Synchronisieren Sie die Zeit des Mixers mit der Uhr
+        clock.elapsedTime = currentTime;
         this.innerHTML = '<i class="fas fa-pause"></i>';
     } else {
         action.paused = true;
@@ -170,20 +178,4 @@ document.getElementById('playPause').addEventListener('click', function () {
 // Geschwindigkeitssteuerung
 document.getElementById('speedControl').addEventListener('change', function (e) {
     playbackSpeed = parseFloat(e.target.value);
-});
-
-// Funktion für AR-Modus
-document.getElementById('arButton').addEventListener('click', () => {
-    if (navigator.xr) {
-        navigator.xr.requestSession('immersive-ar', {
-            requiredFeatures: ['hit-test']
-        }).then((session) => {
-            renderer.xr.setSession(session);
-            session.addEventListener('end', () => {
-                renderer.xr.setSession(null);
-            });
-        });
-    } else {
-        alert('WebXR is not supported on this device');
-    }
 });

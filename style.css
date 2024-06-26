@@ -49,3 +49,17 @@ body {
     background-color: #555;
     color: white;
 }
+
+#enter-ar {
+    padding: 10px 20px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    font-size: 20px;
+    margin-left: 10px;
+}
+
+#enter-ar:focus {
+    outline: none;
+}

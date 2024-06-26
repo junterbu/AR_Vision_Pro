@@ -3,23 +3,26 @@ body {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    height: 100vh; /* Sicherstellen, dass der Body die volle Höhe des Viewports hat */
 }
 
 #container {
     width: 100vw;
-    height: 85vh; /* Vorher 90vh */
+    height: calc(100vh - 60px); /* Höhe des Containers anpassen */
+    position: relative; /* Relativ positioniert, damit absolute Positionierung in den Kindern funktioniert */
 }
 
 #controls {
     width: 100vw;
-    height: 15vh; /* Vorher 10vh */
+    height: 60px; /* Feste Höhe für die Steuerleiste */
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: #333;
     color: white;
-    position: relative; /* Position fixieren */
+    position: absolute; /* Absolut positioniert, um über dem Container zu liegen */
     bottom: 0; /* Am unteren Rand des Containers */
+    z-index: 10; /* Höhere Z-Index für Sichtbarkeit */
 }
 
 #timeline {
@@ -64,4 +67,23 @@ body {
 
 #enter-ar:focus {
     outline: none;
+}
+
+/* Spezifische Anpassungen für Tablets */
+@media (max-width: 768px) {
+    #container {
+        height: calc(100vh - 80px); /* Etwas mehr Platz für die Steuerleiste */
+    }
+
+    #controls {
+        height: 80px; /* Etwas höhere Steuerleiste auf kleineren Bildschirmen */
+    }
+
+    #timeline {
+        width: 60%;
+    }
+
+    #playPause, #speedControl, #enter-ar {
+        font-size: 16px; /* Kleinere Schriftgröße für Schaltflächen */
+    }
 }
